@@ -1,4 +1,4 @@
-package prefix
+package main
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/jerr3n/thyme/util"
+	"go.yaml.in/yaml/v4"
 )
 
 type StateYAML struct {
@@ -52,4 +53,24 @@ func (p Prefix) Exists() bool {
 		return false
 	}
 	return true
+}
+
+func (p *Prefix) ResolveYAML() error {
+	if !p.Exists() {
+		return fs.ErrNotExist
+	}
+	home, err := util.ExpandHome(p.Dir)
+	if err != nil {
+		return err
+	}
+	dest := fmt.Sprintf("%s/state.yaml", home)
+	f, err := os.ReadFile(dest)
+	if err != nil {
+		return err
+	}
+	err = yaml.Unmarshal(f, p.State)
+	if err != nil {
+		return err
+	}
+	return nil
 }

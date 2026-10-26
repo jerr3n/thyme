@@ -16,6 +16,11 @@ type RosemaryOptions struct {
 	NewInstance bool `rosemary:"new"`
 }
 
+type RunIO struct {
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
 func RosemaryFlags(options RosemaryOptions) []string {
 	flags := []string{}
 
@@ -35,10 +40,10 @@ func RosemaryFlags(options RosemaryOptions) []string {
 	return flags
 }
 
-func RunRosemary(ctx context.Context, options RosemaryOptions, args []string, stdout *io.Writer, stderr *io.Writer) error {
+func RunRosemary(ctx context.Context, rosemaryExec string, options RosemaryOptions, args []string, runIO RunIO) error {
 	flags := RosemaryFlags(options)
-	cmd := exec.CommandContext(ctx, "rosemary", slices.Concat(flags, args)...)
-	cmd.Stdout = *stdout
-	cmd.Stderr = *stderr
+	cmd := exec.CommandContext(ctx, rosemaryExec, slices.Concat(flags, args)...)
+	cmd.Stdout = runIO.Stdout
+	cmd.Stderr = runIO.Stdout
 	return cmd.Run()
 }
