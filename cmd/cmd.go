@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"io"
+	"os"
 	"os/exec"
 	"reflect"
 	"slices"
@@ -17,8 +18,10 @@ type RosemaryOptions struct {
 }
 
 type RunIO struct {
+	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
+	Env    []string
 }
 
 func RosemaryFlags(options RosemaryOptions) []string {
@@ -40,10 +43,17 @@ func RosemaryFlags(options RosemaryOptions) []string {
 	return flags
 }
 
-func RunRosemary(ctx context.Context, rosemaryExec string, options RosemaryOptions, args []string, runIO RunIO) error {
-	flags := RosemaryFlags(options)
-	cmd := exec.CommandContext(ctx, rosemaryExec, slices.Concat(flags, args)...)
+func Exec(ctx context.Context, rosemaryExec string, args []string, runIO RunIO) error {
+	cmd := exec.CommandContext(ctx, rosemaryExec, args...)
+	cmd.Stdin = runIO.Stdin
 	cmd.Stdout = runIO.Stdout
-	cmd.Stderr = runIO.Stdout
+	cmd.Stderr = runIO.Stderr
+	if len(runIO.Env) > 0 {
+		cmd.Env = append(os.Environ(), runIO.Env...)
+	}
 	return cmd.Run()
+}
+
+func RunRosemary(ctx context.Context, rosemaryExec string, options RosemaryOptions, args []string, runIO RunIO) error {
+	return Exec(ctx, rosemaryExec, slices.Concat(RosemaryFlags(options), args), runIO)
 }

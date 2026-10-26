@@ -20,8 +20,8 @@ func GetRosemaryPath() (string, error) {
 
 func RosemaryVersion(ctx context.Context, rosemaryExec string, options cmd.RosemaryOptions) (string, error) {
 	var out bytes.Buffer
-	if err := cmd.RunRosemary(ctx, rosemaryExec, options, []string{"version"}, cmd.RunIO{Stdout: &out}); err != nil {
-		return "", fmt.Errorf("rosemary version: %w", err)
+	if err := cmd.RunRosemary(ctx, rosemaryExec, options, []string{"--version"}, cmd.RunIO{Stdout: &out}); err != nil {
+		return "", fmt.Errorf("rosemary --version: %w", err)
 	}
 	return strings.TrimSpace(out.String()), nil
 }

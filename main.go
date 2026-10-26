@@ -1,19 +1,22 @@
-package main
+package thyme
 
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/jerr3n/thyme/cmd"
+	"github.com/jerr3n/thyme/util"
 )
 
 func RosemaryVersion(rosemaryExec string, options cmd.RosemaryOptions) (string, error) {
 	var out bytes.Buffer
-	if err := cmd.RunRosemary(context.Background(), rosemaryExec, options, []string{"version"}, cmd.RunIO{Stdout: &out}); err != nil {
-		return "", fmt.Errorf("rosemary version: %w", err)
+	if err := cmd.RunRosemary(context.Background(), rosemaryExec, options, []string{"--version"}, cmd.RunIO{Stdout: &out}); err != nil {
+		return "", fmt.Errorf("rosemary --version: %w", err)
 	}
 	return strings.TrimSpace(out.String()), nil
 }
@@ -25,16 +28,34 @@ func GetRosemaryPath() (string, error) {
 	return path, nil
 }
 func Run(in string, ctx context.Context, options cmd.RosemaryOptions, rosemaryExec *string, io cmd.RunIO) error {
-	strs := strings.Split(in, " ")
-	if strs[0] == "rosemary" || strs[0][0] == '/' {
+	return RunArgs(strings.Fields(in), ctx, options, rosemaryExec, io)
+}
+
+func RunArgs(args []string, ctx context.Context, options cmd.RosemaryOptions, rosemaryExec *string, io cmd.RunIO) error {
+	strs := args
+	if len(strs) > 0 && filepath.Base(strs[0]) == "rosemary" {
 		strs = strs[1:]
-		if strs[0] == "run" {
+		if len(strs) > 0 && strs[0] == "run" {
 			strs = strs[1:]
 		}
 	}
+	if len(strs) == 0 {
+		return errors.New("nothing to run")
+	}
+	expanded := make([]string, len(strs))
+	for i, s := range strs {
+		e, err := util.ExpandHome(s)
+		if err != nil {
+			return err
+		}
+		expanded[i] = e
+	}
+	strs = expanded
 	var err error
-	executable := *rosemaryExec
-	if rosemaryExec == nil { // not always false do not listen to your ide
+	var executable string
+	if rosemaryExec != nil {
+		executable = *rosemaryExec
+	} else {
 		executable, err = GetRosemaryPath()
 		if err != nil {
 			return err
